@@ -8,7 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class HttpResponsAsync extends AsyncTask<Void, Void, String> {
+public class HttpResponsAsync extends AsyncTask<String, Void, String> {
 
     @Override
     protected void onPreExecute() {
@@ -17,7 +17,10 @@ public class HttpResponsAsync extends AsyncTask<Void, Void, String> {
     }
 
     @Override
-    protected String doInBackground(Void... params) {
+    protected String doInBackground(String... params) {
+        if( params.length != 1 ){
+            return null;
+        }
         String result = null;
         HttpURLConnection con = null;
         DataOutputStream os = null;
@@ -38,7 +41,7 @@ public class HttpResponsAsync extends AsyncTask<Void, Void, String> {
             //con.connect(); // ①
 
             os = new DataOutputStream(con.getOutputStream());
-            os.writeBytes("data=" + "Android Test Data");
+            os.writeBytes("data=" + params[0]);
 
             int code = con.getResponseCode();
 

@@ -2,13 +2,16 @@ package jagsc.dlfa.osushi;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayout;
 import android.support.design.widget.Snackbar;
 import android.view.View;
 import android.widget.TextView;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -18,6 +21,8 @@ public class MainActivity extends AppCompatActivity {
         BLACK,
     }
 
+    private JSONObject json;
+    private JSONArray log;
     private Cell[][] brd;
     private Turn trn = Turn.BLACK;
     private int white = 2;
@@ -78,7 +83,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        new HttpResponsAsync().execute();
+        json = new JSONObject();
+        log = null;
+        try {
+            json.put("version", "1.0");
+            json.put("data", new JSONArray());
+            log = json.getJSONArray("data");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         GridLayout board = (GridLayout) findViewById(R.id.board);
         brd = new Cell[8][8];
@@ -199,6 +212,12 @@ public class MainActivity extends AppCompatActivity {
             b.setText("" + black);
             TextView w = (TextView) findViewById(R.id.white);
             w.setText("" + white);
+
+            JSONArray tmp = new JSONArray();
+            tmp.put(trn == Turn.WHITE ? 1 : 2);
+            tmp.put(x);
+            tmp.put(y);
+            log.put(tmp);
         }
         return t;
     }
@@ -241,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void game_end() {
+        new HttpResponsAsync().execute(json.toString());
         Snackbar.make(
                 findViewById(R.id.main_root),
                 "ゲーム終了！" + (white == black ? "引き分け" : (white > black ? "白の勝ち" : "黒の勝ち")),
