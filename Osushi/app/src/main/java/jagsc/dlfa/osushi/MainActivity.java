@@ -6,14 +6,30 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayout;
 import android.support.design.widget.Snackbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static FirebaseDatabase database;
+    public static FirebaseDatabase get_database() {
+        if (database == null) {
+            database = FirebaseDatabase.getInstance();
+            database.setPersistenceEnabled(true);
+        }
+        return database;
+    }
+    private List<List<Integer>> log;
 
     private enum Turn {
         NONE,
@@ -21,8 +37,6 @@ public class MainActivity extends AppCompatActivity {
         BLACK,
     }
 
-    private JSONObject json;
-    private JSONArray log;
     private Cell[][] brd;
     private Turn trn = Turn.BLACK;
     private int white = 2;
@@ -83,19 +97,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        json = new JSONObject();
-        log = null;
-        try {
-            json.put("version", "1.0");
-            json.put("data", new JSONArray());
-            log = json.getJSONArray("data");
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        log = new ArrayList<>();
 
         GridLayout board = (GridLayout) findViewById(R.id.board);
         brd = new Cell[8][8];
-
 
         for (int i = 0; i < 8; ++i) {
             for (int j = 0; j < 8; ++j) {
@@ -213,11 +218,11 @@ public class MainActivity extends AppCompatActivity {
             TextView w = (TextView) findViewById(R.id.white);
             w.setText("" + white);
 
-            JSONArray tmp = new JSONArray();
-            tmp.put(trn == Turn.WHITE ? 1 : 2);
-            tmp.put(x);
-            tmp.put(y);
-            log.put(tmp);
+            List<Integer> tmp = new ArrayList<>();
+            tmp.add(trn == Turn.WHITE ? 1 : 2);
+            tmp.add(x);
+            tmp.add(y);
+            log.add(tmp);
         }
         return t;
     }
@@ -260,7 +265,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void game_end() {
-        new HttpResponsAsync().execute(json.toString());
+        DatabaseReference ref = get_database().getReference().child("data");
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("version","1.1");
+        data.put("timestamp", ServerValue.TIMESTAMP);
+        data.put("log",log);
+        ref.push().setValue(data, new DatabaseReference.CompletionListener() {
+            @Override
+            public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+                if(databaseError != null){
+                    // error
+                    Log.d("DLfA", databaseError.toString());
+                }
+            }
+        });
         Snackbar.make(
                 findViewById(R.id.main_root),
                 "ゲーム終了！" + (white == black ? "引き分け" : (white > black ? "白の勝ち" : "黒の勝ち")),
